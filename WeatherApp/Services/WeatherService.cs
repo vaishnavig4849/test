@@ -35,8 +35,18 @@ public class WeatherService : IWeatherService
 
         // Get configuration values
         var basePath = AppDomain.CurrentDomain.BaseDirectory;
-        var relativePath = _configuration["WeatherSettings:WeatherDataDirectory"] ?? "../weather-data";
+        var relativePath = _configuration["WeatherSettings:WeatherDataDirectory"] ?? "weather-data";
         _weatherDataDirectory = Path.GetFullPath(Path.Combine(basePath, relativePath));
+        
+        // If directory doesn't exist at the resolved path, try from current directory
+        if (!Directory.Exists(_weatherDataDirectory))
+        {
+            var currentDirPath = Path.Combine(Directory.GetCurrentDirectory(), "weather-data");
+            if (Directory.Exists(Path.GetDirectoryName(currentDirPath)))
+            {
+                _weatherDataDirectory = currentDirPath;
+            }
+        }
         
         _latitude = double.Parse(_configuration["WeatherSettings:DallasLatitude"] ?? "32.78");
         _longitude = double.Parse(_configuration["WeatherSettings:DallasLongitude"] ?? "-96.8");

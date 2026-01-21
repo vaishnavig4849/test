@@ -86,6 +86,16 @@ public class DateParsingService : IDateParsingService
             var basePath = AppDomain.CurrentDomain.BaseDirectory;
             filePath = Path.GetFullPath(Path.Combine(basePath, filePath));
         }
+        
+        // If file doesn't exist at the resolved path, try from the current directory
+        if (!File.Exists(filePath))
+        {
+            var currentDirPath = Path.Combine(Directory.GetCurrentDirectory(), Path.GetFileName(filePath));
+            if (File.Exists(currentDirPath))
+            {
+                filePath = currentDirPath;
+            }
+        }
 
         _logger.LogInformation("Reading dates from file: {FilePath}", filePath);
 
