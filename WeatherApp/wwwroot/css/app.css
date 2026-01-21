@@ -1,0 +1,118 @@
+/* Weather App Custom Styles */
+
+html, body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f8f9fa;
+}
+
+.page {
+    min-height: 100vh;
+}
+
+.content {
+    padding-top: 1rem;
+}
+
+/* Card Styles */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 1rem;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* Table Styles */
+.table th {
+    position: sticky;
+    top: 0;
+    background-color: #212529;
+    color: white;
+}
+
+.table th:hover {
+    background-color: #343a40;
+}
+
+/* Badge Styles */
+.badge {
+    padding: 0.5em 0.75em;
+    font-weight: 500;
+}
+
+/* Button Styles */
+.btn {
+    border-radius: 5px;
+}
+
+/* Modal Styles */
+.modal {
+    z-index: 1050;
+}
+
+.modal-backdrop {
+    z-index: 1040;
+}
+
+/* Error UI */
+#blazor-error-ui {
+    background: lightyellow;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+#blazor-error-ui .dismiss {
+    cursor: pointer;
+    position: absolute;
+    right: 0.75rem;
+    top: 0.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .table {
+        font-size: 0.875rem;
+    }
+}
+
+/* Spinner Animation */
+.spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+
+/* Summary cards hover effect */
+.card.bg-primary:hover,
+.card.bg-success:hover,
+.card.bg-danger:hover,
+.card.bg-info:hover {
+    transform: translateY(-2px);
+    transition: transform 0.2s ease-in-out;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Row highlight on error */
+.table-danger {
+    background-color: #f8d7da !important;
+}
+
+/* Sort indicator styling */
+th[style*="cursor: pointer"] {
+    user-select: none;
+}
+
+th[style*="cursor: pointer"]:hover {
+    background-color: #495057 !important;
+}

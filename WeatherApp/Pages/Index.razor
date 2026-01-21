@@ -1,0 +1,371 @@
+@page "/"
+@using WeatherApp.Models
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject ILogger<Index> Logger
+
+<PageTitle>Weather Data Dashboard</PageTitle>
+
+<div class="container mt-4">
+    <h1 class="mb-4">🌤️ Dallas Historical Weather Data</h1>
+    
+    <div class="mb-3">
+        <button class="btn btn-primary" @onclick="LoadWeatherData" disabled="@isLoading">
+            @if (isLoading)
+            {
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <span>Loading...</span>
+            }
+            else
+            {
+                <span>🔄 Refresh Data</span>
+            }
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="alert alert-info d-flex align-items-center" role="alert">
+            <div class="spinner-border text-info me-3" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <div>
+                Fetching weather data from Open-Meteo API for Dallas, TX...
+            </div>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Error!</strong> @errorMessage
+            <button type="button" class="btn-close" @onclick="ClearError" aria-label="Close"></button>
+        </div>
+    }
+    else if (weatherResponse != null)
+    {
+        <!-- Summary Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Total Processed</h5>
+                        <h2>@weatherResponse.TotalProcessed</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Successful</h5>
+                        <h2>@weatherResponse.SuccessCount</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Errors</h5>
+                        <h2>@weatherResponse.ErrorCount</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">From Cache</h5>
+                        <h2>@weatherResponse.CachedCount</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Controls -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <strong>🔍 Filter & Sort Options</strong>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label class="form-label">Sort By:</label>
+                        <select class="form-select" @bind="sortField">
+                            <option value="date">Date</option>
+                            <option value="minTemp">Min Temperature</option>
+                            <option value="maxTemp">Max Temperature</option>
+                            <option value="precipitation">Precipitation</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sort Order:</label>
+                        <select class="form-select" @bind="sortAscending">
+                            <option value="true">Ascending</option>
+                            <option value="false">Descending</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Filter by Status:</label>
+                        <select class="form-select" @bind="statusFilter">
+                            <option value="">All</option>
+                            <option value="Success">Success</option>
+                            <option value="Cached">Cached</option>
+                            <option value="Error">Error</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather Data Table -->
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <strong>📊 Weather Results</strong>
+                <small class="float-end">Last updated: @weatherResponse.Timestamp.ToString("yyyy-MM-dd HH:mm:ss") UTC</small>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th scope="col" @onclick="() => SortBy("date")" style="cursor: pointer;">
+                                    Original Date @GetSortIndicator("date")
+                                </th>
+                                <th scope="col">Normalized Date</th>
+                                <th scope="col" @onclick="() => SortBy("minTemp")" style="cursor: pointer;">
+                                    Min Temp (°C) @GetSortIndicator("minTemp")
+                                </th>
+                                <th scope="col" @onclick="() => SortBy("maxTemp")" style="cursor: pointer;">
+                                    Max Temp (°C) @GetSortIndicator("maxTemp")
+                                </th>
+                                <th scope="col" @onclick="() => SortBy("precipitation")" style="cursor: pointer;">
+                                    Precipitation (mm) @GetSortIndicator("precipitation")
+                                </th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var result in GetFilteredAndSortedResults())
+                            {
+                                <tr class="@GetRowClass(result.Status)">
+                                    <td>@result.OriginalDate</td>
+                                    <td>@(result.NormalizedDate ?? "-")</td>
+                                    <td>@FormatTemperature(result.MinTemperature)</td>
+                                    <td>@FormatTemperature(result.MaxTemperature)</td>
+                                    <td>@FormatPrecipitation(result.Precipitation)</td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(result.Status)">
+                                            @result.Status
+                                            @if (result.FromCache)
+                                            {
+                                                <span>📦</span>
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-info" @onclick="() => ShowDetails(result)">
+                                            ℹ️ Details
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Details Modal -->
+        @if (selectedResult != null)
+        {
+            <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">📋 Weather Details</h5>
+                            <button type="button" class="btn-close" @onclick="CloseDetails" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <dl class="row">
+                                <dt class="col-sm-5">Original Date:</dt>
+                                <dd class="col-sm-7">@selectedResult.OriginalDate</dd>
+
+                                <dt class="col-sm-5">Normalized Date:</dt>
+                                <dd class="col-sm-7">@(selectedResult.NormalizedDate ?? "N/A")</dd>
+
+                                <dt class="col-sm-5">Status:</dt>
+                                <dd class="col-sm-7">
+                                    <span class="badge @GetStatusBadgeClass(selectedResult.Status)">@selectedResult.Status</span>
+                                </dd>
+
+                                @if (selectedResult.Status != "Error")
+                                {
+                                    <dt class="col-sm-5">Min Temperature:</dt>
+                                    <dd class="col-sm-7">@FormatTemperature(selectedResult.MinTemperature)</dd>
+
+                                    <dt class="col-sm-5">Max Temperature:</dt>
+                                    <dd class="col-sm-7">@FormatTemperature(selectedResult.MaxTemperature)</dd>
+
+                                    <dt class="col-sm-5">Precipitation:</dt>
+                                    <dd class="col-sm-7">@FormatPrecipitation(selectedResult.Precipitation)</dd>
+
+                                    <dt class="col-sm-5">From Cache:</dt>
+                                    <dd class="col-sm-7">@(selectedResult.FromCache ? "Yes 📦" : "No")</dd>
+                                }
+
+                                @if (!string.IsNullOrEmpty(selectedResult.ErrorMessage))
+                                {
+                                    <dt class="col-sm-5">Error Message:</dt>
+                                    <dd class="col-sm-7 text-danger">@selectedResult.ErrorMessage</dd>
+                                }
+                            </dl>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" @onclick="CloseDetails">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private WeatherApiResponse? weatherResponse;
+    private bool isLoading = false;
+    private string? errorMessage;
+    private WeatherResult? selectedResult;
+    
+    // Sorting and filtering state
+    private string sortField = "date";
+    private bool sortAscending = true;
+    private string statusFilter = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadWeatherData();
+    }
+
+    private async Task LoadWeatherData()
+    {
+        isLoading = true;
+        errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var baseUrl = Navigation.BaseUri;
+            using var client = new HttpClient { BaseAddress = new Uri(baseUrl) };
+            
+            weatherResponse = await client.GetFromJsonAsync<WeatherApiResponse>("api/weather");
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = $"Failed to load weather data: {ex.Message}";
+            Logger.LogError(ex, "Error fetching weather data");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
+            Logger.LogError(ex, "Unexpected error");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<WeatherResult> GetFilteredAndSortedResults()
+    {
+        if (weatherResponse?.Results == null)
+            return Enumerable.Empty<WeatherResult>();
+
+        var results = weatherResponse.Results.AsEnumerable();
+
+        // Apply status filter
+        if (!string.IsNullOrEmpty(statusFilter))
+        {
+            results = results.Where(r => r.Status == statusFilter);
+        }
+
+        // Apply sorting
+        results = sortField switch
+        {
+            "date" => sortAscending 
+                ? results.OrderBy(r => r.NormalizedDate ?? "9999")
+                : results.OrderByDescending(r => r.NormalizedDate ?? "0000"),
+            "minTemp" => sortAscending
+                ? results.OrderBy(r => r.MinTemperature ?? double.MaxValue)
+                : results.OrderByDescending(r => r.MinTemperature ?? double.MinValue),
+            "maxTemp" => sortAscending
+                ? results.OrderBy(r => r.MaxTemperature ?? double.MaxValue)
+                : results.OrderByDescending(r => r.MaxTemperature ?? double.MinValue),
+            "precipitation" => sortAscending
+                ? results.OrderBy(r => r.Precipitation ?? double.MaxValue)
+                : results.OrderByDescending(r => r.Precipitation ?? double.MinValue),
+            _ => results
+        };
+
+        return results;
+    }
+
+    private void SortBy(string field)
+    {
+        if (sortField == field)
+        {
+            sortAscending = !sortAscending;
+        }
+        else
+        {
+            sortField = field;
+            sortAscending = true;
+        }
+    }
+
+    private string GetSortIndicator(string field)
+    {
+        if (sortField != field) return "";
+        return sortAscending ? "▲" : "▼";
+    }
+
+    private string FormatTemperature(double? temp)
+    {
+        return temp.HasValue ? $"{temp:F1}°C" : "-";
+    }
+
+    private string FormatPrecipitation(double? precip)
+    {
+        return precip.HasValue ? $"{precip:F1} mm" : "-";
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Success" => "bg-success",
+            "Cached" => "bg-info",
+            "Error" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetRowClass(string status)
+    {
+        return status == "Error" ? "table-danger" : "";
+    }
+
+    private void ShowDetails(WeatherResult result)
+    {
+        selectedResult = result;
+    }
+
+    private void CloseDetails()
+    {
+        selectedResult = null;
+    }
+
+    private void ClearError()
+    {
+        errorMessage = null;
+    }
+}
