@@ -126,17 +126,17 @@
                     <table class="table table-striped table-hover mb-0">
                         <thead class="table-dark">
                             <tr>
-                                <th scope="col" @onclick="() => SortBy("date")" style="cursor: pointer;">
+                                <th scope="col" @onclick="@(() => SortBy(@"date"))" style="cursor: pointer;">
                                     Original Date @GetSortIndicator("date")
                                 </th>
                                 <th scope="col">Normalized Date</th>
-                                <th scope="col" @onclick="() => SortBy("minTemp")" style="cursor: pointer;">
+                                <th scope="col" @onclick="@(() => SortBy(@"minTemp"))" style="cursor: pointer;">
                                     Min Temp (°C) @GetSortIndicator("minTemp")
                                 </th>
-                                <th scope="col" @onclick="() => SortBy("maxTemp")" style="cursor: pointer;">
+                                <th scope="col" @onclick="@(() => SortBy(@"maxTemp"))" style="cursor: pointer;">
                                     Max Temp (°C) @GetSortIndicator("maxTemp")
                                 </th>
-                                <th scope="col" @onclick="() => SortBy("precipitation")" style="cursor: pointer;">
+                                <th scope="col" @onclick="@(() => SortBy(@"precipitation"))" style="cursor: pointer;">
                                     Precipitation (mm) @GetSortIndicator("precipitation")
                                 </th>
                                 <th scope="col">Status</th>
