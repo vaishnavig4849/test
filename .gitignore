@@ -1,0 +1,21 @@
+# Ignore build outputs
+bin/
+obj/
+out/
+
+# Ignore IDE files
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Ignore test results
+TestResults/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Keep weather-data directory but not its contents
+weather-data/*
+!weather-data/.gitkeep
